@@ -1,0 +1,218 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netflix Clone</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="{% static 'assets/style.css' %}" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 50;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.8);
+            transition: all 0.3s ease;
+        }
+
+        .modal-content {
+            background-color: #141414;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            color: white;
+        }
+
+        .modal-show {
+            display: block !important;
+        }
+
+        .dropdown-content {
+            display: none;
+        }
+
+        .dropdown-content.show {
+            display: block;
+        }
+
+        .nav-link {
+            font-size: 1.25rem; /* Increase font size */
+            margin-left: 1rem; /* Adjust spacing */
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white">
+    <header class="p-5 flex justify-between items-center bg-black bg-opacity-80 fixed w-full top-0 z-50">
+        <div class="flex items-center">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/7/7a/Logonetflix.png" height="30" alt="Netflix Logo" width="110">
+            <span><a href="/" class="nav-link hover:text-gray-300">Home</a></span>
+        </div>
+        <nav class="flex space-x-5">
+            <!-- Uncomment this if you want to include the Genres dropdown
+            <div class="relative dropdown">
+                <span id="dropdownMenuButton" class="cursor-pointer hover:text-gray-300">Genres ▼</span>
+                <div id="dropdownMenu" class="dropdown-content absolute bg-gray-800 text-white mt-2 rounded shadow-lg">
+                    <ul><a href="/genre/action/" class="block px-4 py-2 hover:bg-gray-700">Action</a></ul>
+                    <ul><a href="/genre/comedy/" class="block px-4 py-2 hover:bg-gray-700">Comedy</a></ul>
+                    <ul><a href="/genre/drama/" class="block px-4 py-2 hover:bg-gray-700">Drama</a></ul>
+                    <ul><a href="/genre/horror/" class="block px-4 py-2 hover:bg-gray-700">Horror</a></ul>
+                    <ul><a href="/genre/romance/" class="block px-4 py-2 hover:bg-gray-700">Romance</a></ul>
+                    <ul><a href="/genre/sciencefiction/" class="block px-4 py-2 hover:bg-gray-700">Science Fiction</a></ul>
+                    <ul><a href="/genre/fantasy/" class="block px-4 py-2 hover:bg-gray-700">Fantasy</a></ul>
+                </div>
+            </div>
+            -->
+        </nav>
+
+        <div class="flex space-x-5 items-center">
+            <form action="search" method="POST" class="flex">
+                {% csrf_token %}
+                <input type="search" name="search_term" placeholder="Search" class="bg-gray-700 p-2 rounded-l">
+                <button class="bg-red-600 text-white p-2 rounded-r hover:bg-red-500">Search</button>
+            </form>
+            <div class="relative">
+                <a href="#" class="block p-2">Welcome, {{user.username}}</a>
+                <a href="/logout" class="block p-2 hover:text-gray-300">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="py-20 px-5 mt-16">
+        <h2 align="center" class="text-xl mb-5">My LIST</h2>
+        <div class="flex space-x-5 overflow-x-auto">
+            {% for movie in movies %}
+            <div class="w-40 h-64 flex-shrink-0 bg-cover bg-center rounded-lg shadow-lg cursor-pointer transition-transform transform hover:scale-105"
+                onclick="showModal(this)"
+                data-title="{{ movie.title }}"
+                data-description="{{ movie.description }}"
+                data-release-date="{{ movie.release_date|date:'Y' }}"
+                data-genre="{{ movie.get_genre_display }}"
+                data-length="{{ movie.length }}"
+                data-image-card-url="{{ movie.image_card.url }}"
+                data-image-cover-url="{{ movie.image_cover.url }}"
+                data-video-url="/movie/{{ movie.uu_id }}"
+                style="background-image: url('{{movie.image_card.url}}');">
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Modal -->
+    <div class="modal" id="movieModal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-5">
+                <h2 class="text-xl">Movie Title</h2>
+                <button class="text-white hover:text-gray-400" onclick="hideModal()">X</button>
+            </div>
+            <img src="" alt="Movie Image" class="w-full mb-5 rounded">
+            <div class="flex justify-between mb-5">
+                <span>Year: 2023</span>
+                <span>Genre: </span>
+                <span>Length: 2h 15min</span>
+            </div>
+            <p class="mb-5">Detailed information about the movie.</p>
+            <div class="flex space-x-4 mb-5">
+                <a href="">
+                    <button class="bg-red-600 text-white p-2 px-5 rounded hover:bg-red-500">Play</button>
+                </a>
+                <button id="addToListButton" onclick="addItemToList()" class="border border-white text-white p-2 px-5 rounded hover:bg-gray-700">
+                    Add to List
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showModal(element) {
+            const title = element.getAttribute('data-title');
+            const description = element.getAttribute('data-description');
+            const releaseDate = element.getAttribute('data-release-date');
+            const genre = element.getAttribute('data-genre');
+            const length = element.getAttribute('data-length');
+            const imageCoverUrl = element.getAttribute('data-image-cover-url');
+            const dataVideoUrl = element.getAttribute('data-video-url');
+
+            const modal = document.getElementById('movieModal');
+            modal.querySelector('.modal-content h2').textContent = title;
+            modal.querySelector('.modal-content img').src = imageCoverUrl;
+            modal.querySelector('.modal-content img').alt = `${title} Cover Image`;
+            modal.querySelector('.modal-content a').href = dataVideoUrl;
+            modal.querySelector('.modal-content .flex span:first-child').textContent = "Year: " + releaseDate;
+            modal.querySelector('.modal-content .flex span:nth-child(2)').textContent = "Genre: " + genre;
+            modal.querySelector('.modal-content .flex span:last-child').textContent = "Length: " + length + "min";
+            modal.querySelector('.modal-content p').textContent = description;
+
+            modal.style.display = 'block';
+            setTimeout(() => {
+                modal.classList.add('modal-show');
+            }, 50);
+        }
+
+        function hideModal() {
+            const modal = document.getElementById('movieModal');
+            modal.classList.remove('modal-show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+
+        window.onclick = function(event) {
+            if (event.target === document.getElementById('movieModal')) {
+                hideModal();
+            }
+        }
+
+        function addItemToList() {
+            const modal = document.getElementById('movieModal');
+            const movieID = modal.querySelector('.modal-content a').href;
+
+            $.ajax({
+                url: "{% url 'add-to-list' %}",
+                type: "POST",
+                data: {
+                    movie_id: movieID,
+                    csrfmiddlewaretoken: "{{ csrf_token }}"
+                },
+                success: function(data) {
+                    $('#addToListButton').text(data.message);
+                    $('#addToListButton').prop('disabled', true);
+                    console.log("Item added to list!");
+                },
+                error: function(xhr, errmsg, err) {
+                    console.error("Error adding item to list: " + errmsg);
+                }
+            });
+        }
+
+        document.getElementById('dropdownMenuButton').addEventListener('click', function() {
+            const dropdownMenu = document.getElementById('dropdownMenu');
+            dropdownMenu.classList.toggle('show');
+        });
+
+        window.addEventListener('click', function(event) {
+            if (!event.target.matches('#dropdownMenuButton')) {
+                const dropdowns = document.getElementsByClassName('dropdown-content');
+                for (let i = 0; i < dropdowns.length; i++) {
+                    const openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

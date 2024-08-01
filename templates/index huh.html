@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netflix Clone</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            transform: scale(0);
+            transition: transform 0.3s ease-out;
+        }
+
+        .modal-content {
+            background: #000;
+            margin: 5% auto;
+            width: 70%;
+            height: 80%;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .modal-show {
+            transform: scale(1);
+        }
+
+        .film-card {
+            width: 200px;
+            height: 300px;
+            transition: transform 0.3s ease, border-radius 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .film-card:hover {
+            transform: scale(1.15);
+            border-radius: 25px;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+        }
+
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #ddd;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+    </style>
+</head>
+
+<body class="text-white" style="background-color: #141414;">
+    <header class="p-5 flex justify-between items-center">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/7/7a/Logonetflix.png" height="30" alt="Netflix Logo" width="110">
+        <nav class="flex space-x-5">
+            <span><a href="/">Home</a></span>
+            <div class="dropdown">
+                <span id="dropdownMenuButton" class="cursor-pointer">Genres ▼</span>
+                <div id="dropdownMenu" class="dropdown-content hidden">
+                    <a href="/genre/action/">Action</a>
+                    <a href="/genre/comedy/">Comedy</a>
+                    <a href="/genre/drama/">Drama</a>
+                    <a href="/genre/horror/">Horror</a>
+                    <a href="/genre/romance/">Romance</a>
+                    <a href="/genre/sciencefiction/">Science Fiction</a>
+                    <a href="/genre/fantasy/">Fantasy</a>
+                </div>
+            </div>
+            <span><a href="/my-list">My List</a></span>
+        </nav>
+        <div class="flex space-x-5 items-center">
+            <form action="search" method="POST">
+                <input type="search" name="search_term" placeholder="Search" class="bg-gray-700 p-2 rounded">
+                <button class="bg-red-600 text-white p-2 rounded hover:bg-red-500">Search</button>
+            </form>
+            <div class="relative">
+                <a href="#" class="block p-2">Welcome, User</a>
+                <a href="/logout" class="block p-2">Logout</a>
+            </div>
+        </div>
+    </header>
+    <section class="relative py-20 px-10" style="background-image: url('featured_movie_image_url'); background-size: cover; background-position: center;">
+        <div>
+            <h1 class="text-5xl mb-5" style="color: black;">Featured Movie Title</h1>
+            <p class="mb-5" style="color: black;">Featured movie description.</p>
+            <div class="flex space-x-4">
+                <a href="/movie/featured_movie_id">
+                    <button class="bg-red-600 text-white p-2 px-5 rounded hover:bg-red-500">Play</button>
+                </a>
+            </div>
+        </div>
+    </section>
+    <section class="py-10 px-5">
+        <h2 class="text-xl mb-5">Popular on Netflix</h2>
+        <div class="flex space-x-5 overflow-x-auto">
+            <div class="w-40 h-64 flex-shrink-0 film-card"
+                onclick="showModal(this)"
+                data-title="Movie Title"
+                data-description="Movie description."
+                data-release-date="2023"
+                data-genre="Genre"
+                data-length="120"
+                data-image-card-url="movie_image_card_url"
+                data-image-cover-url="movie_image_cover_url"
+                data-video-url="/movie/movie_id"
+                style="background-image: url('movie_image_card_url'); background-size: cover; background-position: center;">
+            </div>
+            <!-- Add more movie cards as needed -->
+        </div>
+    </section>
+
+    <!-- Modal -->
+    <div class="modal" id="movieModal">
+        <div class="modal-content">
+            <div class="flex justify-between">
+                <h2 class="text-xl mb-5">Movie Title</h2>
+                <button onclick="hideModal()">X</button>
+            </div>
+            <img width="1000" height="100" src="movie_image_cover_url" alt="Movie Image" class=" mb-5">
+            <div class="flex justify-between mb-5">
+                <span>Year: 2023</span>
+                <span>Length: 2h 15min</span>
+            </div>
+            <p class="mb-5">Detailed information about the movie.</p>
+            <div class="flex space-x-4 mb-5">
+                <a href="movie.html">
+                    <button class="bg-red-600 text-white p-2 px-5 rounded hover:bg-red-500">Play</button>
+                </a>
+                <button id="addToListButton" onclick="addItemToList()" class="border border-white text-white p-2 px-5 rounded hover:bg-gray-700">
+                    Add to List
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showModal(element) {
+            const title = element.getAttribute('data-title');
+            const description = element.getAttribute('data-description');
+            const releaseDate = element.getAttribute('data-release-date');
+            const genre = element.getAttribute('data-genre');
+            const length = element.getAttribute('data-length');
+            const imageCoverUrl = element.getAttribute('data-image-cover-url');
+            const videoUrl = element.getAttribute('data-video-url');
+
+            const modal = document.getElementById('movieModal');
+            modal.querySelector('h2').textContent = title;
+            modal.querySelector('img').src = imageCoverUrl;
+            modal.querySelector('a').href = videoUrl;
+            modal.querySelector('img').alt = `${title} Cover Image`;
+            modal.querySelector('.flex span:first-child').textContent = `Year: ${releaseDate}`;
+            modal.querySelector('.flex span:nth-child(2)').textContent = `Genre: ${genre}`;
+            modal.querySelector('.flex span:last-child').textContent = `Length: ${length}min`;
+            modal.querySelector('p').textContent = description;
+
+            modal.style.display = 'block';
+            setTimeout(() => {
+                modal.classList.add('modal-show');
+            }, 50);
+        }
+
+        function hideModal() {
+            const modal = document.getElementById('movieModal');
+            modal.classList.remove('modal-show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+
+        window.onclick = function(event) {
+            if (event.target === document.getElementById('movieModal')) {
+                hideModal();
+            }
+        }
+
+        function addItemToList() {
+            const modal = document.getElementById('movieModal');
+            const movieID = modal.querySelector('a').href;
+
+            $.ajax({
+                url: "/add-to-list",
+                type: "POST",
+                data: {
+                    movie_id: movieID,
+                },
+                success: function(data) {
+                    $('#addToListButton').text(data.message);
+                    $('#addToListButton').prop('disabled', true);
+                    console.log("Item added to list!");
+                },
+                error: function(xhr, errmsg, err) {
+                    console.error("Error adding item to list: " + errmsg);
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>
