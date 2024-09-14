@@ -1,1 +1,1 @@
-web gunicorn netflixfyx.wsgi.application --log-file -
+web: gunicorn netflixfyx.wsgi
