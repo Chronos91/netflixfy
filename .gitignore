@@ -1,13 +1,1 @@
-# Ignore Python bytecode
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Ignore environment variables
 .env
-
-# Ignore Django settings file
-settings.py
-
-# Ignore other sensitive files
-db.sqlite3
